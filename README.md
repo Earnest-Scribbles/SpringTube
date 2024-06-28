@@ -1,2 +1,2 @@
-# springtube
+# SpringTube
 Video streaming application
