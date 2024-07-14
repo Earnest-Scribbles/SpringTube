@@ -1,4 +1,4 @@
-module github.com/Earnest-Scribbles/SpringTube
+module github.com/Earnest-Scribbles/SpringTube/video-streaming
 
 go 1.22.4
 
