@@ -30,7 +30,7 @@ func main() {
 	}
 
 	if os.Getenv("AWS_REGION") == "" {
-		log.Fatal("Please specify the access key ID to AWS Account with the environment variable AWS_REGION.")
+		log.Fatal("Please specify the AWS Region with the environment variable AWS_REGION.")
 	}
 
 	if os.Getenv("AWS_ACCESS_KEY_ID") == "" {
@@ -61,7 +61,7 @@ func main() {
 		s3Client := createS3Service()
 
 		bucketName := "springtube"
-		objectKey := "videos" + videoPath
+		objectKey := "videos/" + videoPath
 
 		s3Object, err := s3Client.GetObject(context.TODO(), &s3.GetObjectInput{
 			Bucket: aws.String(bucketName),
@@ -76,7 +76,7 @@ func main() {
 		// c.Header("Content-Length", strconv.Itoa(int(*s3Object.ContentLength)))
 		// c.Header("Content-Type", "video/mp4")
 
-		// Add the code to stream the file into response
+		// // Add the code to stream the file into response
 		// c.Stream(func(w io.Writer) bool {
 		// 	_, err := io.Copy(w, s3Object.Body)
 		// 	if err != nil {
