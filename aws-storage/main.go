@@ -61,7 +61,7 @@ func main() {
 		s3Client := createS3Service()
 
 		bucketName := "springtube"
-		objectKey := "videos/SampleVideo_1280x720_1mb.mp4"
+		objectKey := "videos" + videoPath
 
 		s3Object, err := s3Client.GetObject(context.TODO(), &s3.GetObjectInput{
 			Bucket: aws.String(bucketName),
@@ -86,6 +86,7 @@ func main() {
 		// 	return false // Returning false after streaming is done
 		// })
 
+		// Add the video to response stream adding in content length and type headers
 		c.DataFromReader(200, *s3Object.ContentLength, *s3Object.ContentType, s3Object.Body, nil)
 	})
 

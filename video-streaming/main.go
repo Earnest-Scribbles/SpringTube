@@ -11,7 +11,7 @@ import (
 
 func main() {
 
-	// Confiuration through environment variables is becoming a standard in Microservices
+	// Configuration through environment variables is becoming a standard in Microservices
 	// Throws an error if the PORT environment variable is missing
 	if os.Getenv("PORT") == "" {
 		log.Fatal("Please specify the port number for the HTTP server with the environment variable PORT.")

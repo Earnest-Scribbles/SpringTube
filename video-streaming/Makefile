@@ -1,6 +1,6 @@
 # Change these variables as necessary.
 MAIN_PACKAGE_PATH := ./
-BINARY_NAME := springtube
+BINARY_NAME := video-streaming
 
 ## help: print this help message
 .PHONY: help
