@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"log"
 	"os"
 
@@ -56,6 +58,9 @@ func main() {
 	r.GET("/video", func(c *gin.Context) {
 		// Path query parameter is the video path
 		videoPath := c.Query("path")
+		if videoPath == "" {
+			c.JSON(400, "Path parameter is required")
+		}
 		log.Printf("Serving videos from path %s.", videoPath)
 
 		s3Client := createS3Service()
@@ -73,6 +78,12 @@ func main() {
 				bucketName, objectKey, err)
 		}
 
+		defer s3Object.Body.Close()
+		body, err := io.ReadAll(s3Object.Body)
+		if err != nil {
+			log.Printf("Couldn't read object body from %v. Here's why: %v\n", objectKey, err)
+		}
+
 		// c.Header("Content-Length", strconv.Itoa(int(*s3Object.ContentLength)))
 		// c.Header("Content-Type", "video/mp4")
 
@@ -87,7 +98,7 @@ func main() {
 		// })
 
 		// Add the video to response stream adding in content length and type headers
-		c.DataFromReader(200, *s3Object.ContentLength, *s3Object.ContentType, s3Object.Body, nil)
+		c.DataFromReader(200, *s3Object.ContentLength, *s3Object.ContentType, bytes.NewReader(body), nil)
 	})
 
 	// Starts the HTTP server.
