@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"os"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,9 +16,19 @@ func main() {
 	if os.Getenv("PORT") == "" {
 		log.Fatal("Please specify the port number for the HTTP server with the environment variable PORT.")
 	}
+	if os.Getenv("VIDEO_STORAGE_HOST") == "" {
+		log.Fatal("Please specify the host name for the video storage microservice in variable VIDEO_STORAGE_HOST.")
+	}
+	if os.Getenv("VIDEO_STORAGE_PORT") == "" {
+		log.Fatal("Please specify the port number for the video storage microservice in variable VIDEO_STORAGE_PORT.")
+	}
 
-	// Extracts the PORT environment variable.
+	// Extracts the PORT, VIDEO_STORAGE_HOST and VIDEO_STORAGE_PORT environment variable.
 	PORT := os.Getenv("PORT")
+	VIDEO_STORAGE_HOST := os.Getenv("VIDEO_STORAGE_HOST")
+	VIDEO_STORAGE_PORT := os.Getenv("VIDEO_STORAGE_PORT")
+
+	log.Printf("Forwarding video requests to %s:%s.", VIDEO_STORAGE_HOST, VIDEO_STORAGE_PORT)
 
 	r := gin.Default()
 
@@ -28,17 +38,19 @@ func main() {
 
 	// Registers a HTTP GET route for video streaming.
 	r.GET("/video", func(c *gin.Context) {
-		videoPath := "./videos/SampleVideo_1280x720_1mb.mp4"
-
-		stats, err := os.Stat(videoPath)
-		if err != nil {
-			c.String(http.StatusInternalServerError, "File not found")
-			return
+		// videoPath := "./videos/SampleVideo_1280x720_1mb.mp4"
+		// Created a Director for reverse proxy
+		director := func(req *http.Request) {
+			req.URL.Host = VIDEO_STORAGE_HOST + ":" + VIDEO_STORAGE_PORT
+			req.URL.Path = "/video"
+			req.URL.RawQuery = "path=SampleVideo_1280x720_1mb.mp4"
+			req.URL.Scheme = "http"
+			req.Host = VIDEO_STORAGE_HOST + ":" + VIDEO_STORAGE_PORT
 		}
 
-		c.Header("Content-Length", strconv.Itoa(int(stats.Size())))
-		c.Header("Content-Type", "video/mp4")
-		c.File(videoPath)
+		// Created a reverse proxy
+		proxy := &httputil.ReverseProxy{Director: director}
+		proxy.ServeHTTP(c.Writer, c.Request)
 	})
 
 	// Starts the HTTP server.

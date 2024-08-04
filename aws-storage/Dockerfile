@@ -4,7 +4,6 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY *.go ./
-COPY ./videos ./videos
-RUN CGO_ENABLED=0 GOOS=linux go build -o /springtube
+RUN CGO_ENABLED=0 GOOS=linux go build -o /video-storage
 
-CMD ["/springtube"]
+CMD ["/video-storage"]

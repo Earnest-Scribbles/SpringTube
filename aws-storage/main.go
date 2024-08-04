@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -59,7 +60,7 @@ func main() {
 		// Path query parameter is the video path
 		videoPath := c.Query("path")
 		if videoPath == "" {
-			c.JSON(400, "Path parameter is required")
+			c.JSON(http.StatusBadRequest, "Path parameter is required")
 		}
 		log.Printf("Serving videos from path %s.", videoPath)
 
@@ -79,6 +80,8 @@ func main() {
 		}
 
 		defer s3Object.Body.Close()
+
+		// read entire body from s3 object
 		body, err := io.ReadAll(s3Object.Body)
 		if err != nil {
 			log.Printf("Couldn't read object body from %v. Here's why: %v\n", objectKey, err)
@@ -97,8 +100,8 @@ func main() {
 		// 	return false // Returning false after streaming is done
 		// })
 
-		// Add the video to response stream adding in content length and type headers
-		c.DataFromReader(200, *s3Object.ContentLength, *s3Object.ContentType, bytes.NewReader(body), nil)
+		// Add the video creating a new reader from the body to response stream adding in content length and type headers
+		c.DataFromReader(http.StatusOK, *s3Object.ContentLength, *s3Object.ContentType, bytes.NewReader(body), nil)
 	})
 
 	// Starts the HTTP server.
