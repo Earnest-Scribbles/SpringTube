@@ -61,6 +61,7 @@ func main() {
 		videoPath := c.Query("path")
 		if videoPath == "" {
 			c.JSON(http.StatusBadRequest, "Path parameter is required")
+			return
 		}
 		log.Printf("Serving videos from path %s.", videoPath)
 
