@@ -12,8 +12,15 @@ services:
     image: aws-storage
     build:
       context: ./aws-storage
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile-dev
     container_name: video-storage
+    volumes:
+    # Mounting the Go module cache directory
+      - /tmp/video-storage/go-mod:/go/pkg/mod:z
+    # Mounting the Go build cache directory
+      - /tmp/video-storage/go-cache:/root/.cache/go-build:z
+    # Mounting the source code directory
+      - ./aws-storage/src:/app/src:z
     ports:
      - "4001:80"
     environment:
@@ -28,8 +35,15 @@ services:
     image: video-streaming
     build:
       context: ./video-streaming
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile-dev
     container_name: video-streaming
+    volumes:
+    # Mounting the Go module cache directory
+      - /tmp/video-streaming/go-mod:/go/pkg/mod:z
+    # Mounting the Go build cache directory
+      - /tmp/video-streaming/go-cache:/root/.cache/go-build:z
+    # Mounting the source code directory
+      - ./video-streaming/src:/app/src:z
     ports:
      - "4002:80"
     environment:
@@ -38,4 +52,23 @@ services:
       - DBNAME=video-streaming
       - VIDEO_STORAGE_HOST=video-storage
       - VIDEO_STORAGE_PORT=80
+    restart: "no"
+
+  history:
+    image: history
+    build:
+      context: ./history
+      dockerfile: Dockerfile-dev
+    container_name: history
+    volumes:
+    # Mounting the Go module cache directory
+      - /tmp/history/go-mod:/go/pkg/mod:z
+    # Mounting the Go build cache directory
+      - /tmp/history/go-cache:/root/.cache/go-build:z
+    # Mounting the source code directory
+      - ./history/src:/app/src:z
+    ports:
+     - "4003:80"
+    environment:
+      - PORT=80
     restart: "no"

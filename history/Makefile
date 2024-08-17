@@ -1,6 +1,6 @@
 # Change these variables as necessary.
 MAIN_PACKAGE_PATH := ./src
-BINARY_NAME := aws-storage
+BINARY_NAME := history
 
 ## help: print this help message
 .PHONY: help
