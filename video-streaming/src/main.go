@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -14,9 +16,40 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// Structure to hold the video id and path from mongodb
 type VideoRecord struct {
 	ID        string `bson:"_id"`
 	VideoPath string `bson:"videoPath"`
+}
+
+// Send the "viewed" to the history microservice.
+func sendViewedMessage(videoPath string) {
+	requestBody, err := json.Marshal(map[string]string{
+		"videoPath": videoPath,
+	})
+	if err != nil {
+		log.Fatalf("Failed to marshal request body: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", "http://history/viewed", bytes.NewBuffer(requestBody))
+	if err != nil {
+		log.Println("Error creating request:", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		log.Fatalf("Failed to send 'viewed' message: %v", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == http.StatusOK {
+		log.Println("Sent 'viewed' message to history microservice.")
+	} else {
+		log.Println("Failed to send 'viewed' message!")
+	}
 }
 
 func main() {
@@ -33,7 +66,7 @@ func main() {
 		log.Fatal("Please specify the port number for the video storage microservice in variable VIDEO_STORAGE_PORT.")
 	}
 	if os.Getenv("DBHOST") == "" {
-		log.Fatal("Please specify the databse host using environment variable DBHOST.")
+		log.Fatal("Please specify the database host using environment variable DBHOST.")
 	}
 	if os.Getenv("DBNAME") == "" {
 		log.Fatal("Please specify the name of the database using environment variable DBNAME.")
@@ -60,9 +93,9 @@ func main() {
 		}
 	}()
 
-	// Get the database
+	// Gets the database for this microservice
 	db := client.Database(DBNAME)
-	// Get the video collections
+	// Gets the collection for storing video path.
 	videosCollection := db.Collection("videos")
 
 	r := gin.Default()
@@ -73,20 +106,17 @@ func main() {
 
 	// Registers a HTTP GET route for video streaming.
 	r.GET("/video", func(c *gin.Context) {
-		videoId := c.Query("id")
-		if videoId == "" {
-			c.JSON(http.StatusNotFound, "The video was not found")
-			return
-		}
-
-		videoObjectId, err := primitive.ObjectIDFromHex(videoId)
+		// convert the id passed into ObjectID which mongoDB can understand
+		videoId, err := primitive.ObjectIDFromHex(c.Query("id"))
 		if err != nil {
-			log.Println("Invalid id")
+			c.JSON(http.StatusNotFound, "The video was not found")
+			log.Printf("Invalid id: %v", err)
+			return
 		}
 
 		// Retrieves the first matching document
 		var videoRecord VideoRecord
-		err = videosCollection.FindOne(context.Background(), bson.M{"_id": videoObjectId}).Decode(&videoRecord)
+		err = videosCollection.FindOne(context.Background(), bson.M{"_id": videoId}).Decode(&videoRecord)
 
 		// Prints a message if no documents are matched or if any
 		// other errors occur during the operation
@@ -112,6 +142,9 @@ func main() {
 		// Created a reverse proxy
 		proxy := &httputil.ReverseProxy{Director: director}
 		proxy.ServeHTTP(c.Writer, c.Request)
+
+		// Sends the "viewed" message to indicate this video has been watched.
+		sendViewedMessage("./videos/" + videoRecord.VideoPath)
 	})
 
 	// Starts the HTTP server.
